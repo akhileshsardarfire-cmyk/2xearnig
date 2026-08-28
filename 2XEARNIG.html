@@ -1,0 +1,1405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pro Earning App - Premium UI</title>
+    
+    <!-- Firebase Compat Libraries -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js"></script>
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; -webkit-tap-highlight-color: transparent; user-select: none; }
+        body { background: #e0e5ec; color: #333; height: 100vh; overflow: hidden; display: flex; flex-direction: column; cursor: default; }
+
+        /* STARTUP POPUP AD (FULL SCREEN) */
+        #startupPopup { position: fixed; top:0; left:0; width:100%; height:100vh; background:rgba(0,0,0,0.95); z-index:999999; display:none; justify-content:center; align-items:center; backdrop-filter: blur(5px); }
+        .popup-box { position: relative; width: 95%; height: 90vh; display: flex; justify-content: center; align-items: center; animation: zoomIn 0.3s ease; background: transparent; box-shadow: none; }
+        .popup-close { position: absolute; top: -5px; right: -5px; width: 40px; height: 40px; background: #ef4444; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.4); border: 2px solid #fff; transition: 0.2s; z-index: 10; }
+        .popup-close:active { transform: scale(0.9); }
+        @keyframes zoomIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        /* SPLASH & APP BAR */
+        #splashScreen { position: fixed; top:0; left:0; width:100%; height:100vh; background:#e0e5ec; z-index:9999; display:flex; flex-direction:column; justify-content:center; align-items:center; transition:0.5s ease; }
+        #splashImg { width: 120px; height: 120px; border-radius: 25px; box-shadow: 6px 6px 15px #b8bcc2, -6px -6px 15px #ffffff; margin-bottom: 20px; animation: bounce 1.5s infinite; object-fit: cover; }
+        .splash-text { font-size:24px; font-weight:700; color:#4f46e5; }
+        @keyframes bounce { 0%, 100% { transform:translateY(0); } 50% { transform:translateY(-15px); } }
+        
+        /* NETWORK TOAST NOTIFICATION */
+        #networkToast { position: fixed; top: -60px; left: 50%; transform: translateX(-50%); padding: 10px 20px; border-radius: 20px; z-index: 100000; font-size: 13px; font-weight: 600; transition: 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55); box-shadow: 0 5px 15px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 8px; color: #fff; min-width: max-content; }
+        #networkToast.show { top: 30px; }
+        .toast-offline { background: #dc2626; }
+        .toast-online { background: #10b981; }
+        .toast-slow { background: #f59e0b; }
+
+        /* MAINTENANCE OVERLAY (FIXED IMAGE SIZE) */
+        #maintenanceOverlay { position: fixed; top:0; left:0; width:100%; height:100vh; background:rgba(224,229,236,0.98); z-index:99999; display:none; flex-direction:column; justify-content:center; align-items:center; padding: 20px; text-align: center; }
+        #maintDynamicImg { width: 95%; max-width: 500px; height: auto; max-height: 55vh; object-fit: contain; border-radius: 15px; box-shadow: 6px 6px 15px #b8bcc2, -6px -6px 15px #ffffff; margin-bottom: 25px; }
+        #maintIcon { font-size: 60px; color: #dc2626; margin-bottom: 20px; animation: pulse 2s infinite; }
+        #maintenanceOverlay h2 { color: #333; margin-bottom: 10px; font-size: 22px; }
+        #maintenanceOverlay p { color: #666; font-size: 13px; padding: 0 10px; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+
+        /* SIDE DRAWER */
+        .drawer { position:fixed; top:0; left:-280px; width:280px; height:100vh; background:#e0e5ec; z-index:1000; transition:0.3s ease; padding:25px 20px; display:flex; flex-direction:column; box-shadow: 10px 0 20px rgba(0,0,0,0.1); overflow-y: auto; }
+        .drawer.open { left:0; }
+        .drawer-overlay { position:fixed; top:0; left:0; width:100%; height:100vh; background:rgba(0,0,0,0.4); z-index:999; display:none; }
+        .drawer-overlay.active { display:block; }
+        .drawer-item { padding:14px; font-weight:600; font-size:14px; margin-bottom:12px; border-radius:12px; cursor:pointer; box-shadow:4px 4px 8px #b8bcc2, -4px -4px 8px #ffffff; display:flex; align-items:center; gap:12px; color:#333; }
+        .drawer-item:active { box-shadow:inset 3px 3px 6px #b8bcc2, inset -3px -3px 6px #ffffff; }
+
+        /* MAIN CONTENT & TABS */
+        .main-content { flex:1; overflow-y:auto; padding:20px; padding-bottom:150px; scroll-behavior:smooth; position:relative; }
+        .main-content::-webkit-scrollbar { display:none; }
+        .tab-content { display:none; animation:fadeIn 0.3s ease; }
+        .tab-content.active { display:block; }
+        @keyframes fadeIn { from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
+
+        /* FIXED TOP CONTAINER */
+        .home-fixed-top { position: sticky; top: -20px; z-index: 95; background: #e0e5ec; margin: -20px -20px 15px -20px; padding: 20px 20px 15px 20px; box-shadow: 0 10px 15px -10px rgba(0,0,0,0.1); border-bottom: 1px solid rgba(0,0,0,0.05); }
+        
+        /* COMPACT HEADER */
+        .compact-header { position: relative; z-index: 100; margin: -20px -20px 20px -20px; padding: 25px 20px 15px 20px; background: linear-gradient(135deg, #4f46e5, #6366f1); border-radius: 0 0 25px 25px; box-shadow: 0 10px 20px rgba(79, 70, 229, 0.3); display: flex; justify-content: space-between; align-items: center; color: white; }
+        
+        .header-left { display: flex; align-items: center; gap: 10px; }
+        .menu-btn { font-size: 20px; cursor: pointer; padding: 5px; color: rgba(255,255,255,0.9); }
+        .user-info h3 { font-size: 15px; margin: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
+        .user-info p { font-size: 10px; margin: 0; opacity: 0.9; font-weight: 500; }
+        
+        .header-right { display: flex; align-items: center; gap: 12px; }
+        .coin-capsule { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); padding: 6px 12px; border-radius: 20px; display: flex; align-items: center; gap: 6px; cursor: pointer; transition: 0.2s; }
+        .coin-capsule:active { transform: scale(0.95); background: rgba(255,255,255,0.3); }
+        .coin-capsule i { color: #fef08a; font-size: 16px; }
+        .coin-capsule span { font-size: 14px; font-weight: 700; color: white; }
+        
+        .bell-icon { position: relative; font-size: 20px; cursor: pointer; padding: 5px; color: rgba(255,255,255,0.9); transition: 0.2s; }
+        .bell-icon:active { transform: scale(0.9); }
+        .notif-dot { position: absolute; top: 4px; right: 5px; width: 8px; height: 8px; background: #ef4444; border-radius: 50%; border: 1px solid #4f46e5; display: none; }
+
+        /* 3D UI, GRIDS & ICONS */
+        .auth-card { background:#e0e5ec; padding:20px; border-radius:20px; box-shadow:8px 8px 16px #b8bcc2, -8px -8px 16px #ffffff; margin-bottom: 20px; position: relative;}
+        
+        .icon-circle { width: 55px; height: 55px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 26px; margin: 0 auto 10px; color: #fff; box-shadow: 0 6px 12px rgba(0,0,0,0.15); border: 2px solid #e0e5ec; }
+        .icon-checkin { background: linear-gradient(135deg, #4f46e5, #818cf8); }
+        .icon-spin { background: linear-gradient(135deg, #f59e0b, #fbbf24); }
+        .icon-scratch { background: linear-gradient(135deg, #8b5cf6, #a78bfa); }
+        .icon-watch { background: linear-gradient(135deg, #e63946, #f87171); }
+        .icon-refer { background: linear-gradient(135deg, #10b981, #34d399); }
+        .icon-withdraw { background: linear-gradient(135deg, #059669, #6ee7b7); }
+        .icon-support { background: linear-gradient(135deg, #3b82f6, #8b5cf6); }
+
+        /* SLIDER BANNER */
+        .banner-slider { width:100%; height:140px; border-radius:15px; margin-bottom:0px; box-shadow:6px 6px 12px #b8bcc2, -6px -6px 12px #ffffff; position: relative; display: none; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; touch-action: pan-x; }
+        .banner-slider::-webkit-scrollbar { display: none; }
+        .banner-slide { flex: 0 0 100%; scroll-snap-align: center; width:100%; height:100%; object-fit:cover; }
+        
+        .grid-3d { display:grid; grid-template-columns:repeat(2, 1fr); gap:15px; }
+        .card-3d { background:#e0e5ec; padding:20px 10px; border-radius:15px; text-align:center; box-shadow:6px 6px 12px #b8bcc2, -6px -6px 12px #ffffff; cursor:pointer; transition: 0.2s; }
+        .card-3d:active { box-shadow:inset 4px 4px 8px #b8bcc2, inset -4px -4px 8px #ffffff; transform: translateY(2px); }
+        .card-3d h3 { font-size:13px; font-weight:600; color:#333; }
+
+        .input-group { margin-bottom:15px; position:relative; }
+        .input-group i { position:absolute; left:15px; top:15px; color:#6b7280; }
+        .input-group input, .input-group select, .input-group textarea { width:100%; padding:14px 14px 14px 45px; background:#e0e5ec; border:none; border-radius:12px; box-shadow:inset 4px 4px 8px #b8bcc2, inset -4px -4px 8px #ffffff; outline:none; font-size:13px; font-weight: 500; }
+        
+        .btn-3d { width:100%; padding:14px; background:#e0e5ec; color:#4f46e5; border:none; border-radius:12px; font-weight:bold; cursor:pointer; box-shadow:5px 5px 10px #b8bcc2, -5px -5px 10px #ffffff; display:flex; align-items:center; justify-content:center; gap:8px; margin-top:10px; font-size: 14px; transition: 0.2s; }
+        .btn-3d:active:not(:disabled) { box-shadow:inset 3px 3px 6px #b8bcc2, inset -3px -3px 6px #ffffff; transform: translateY(2px); }
+        .btn-3d:disabled { color: #999; box-shadow:inset 3px 3px 6px #b8bcc2, inset -3px -3px 6px #ffffff; cursor: not-allowed; }
+
+        /* SPINNER & SCRATCH */
+        .wheel-container { display:flex; justify-content:center; margin:20px 0; position:relative; }
+        .wheel { width:210px; height:210px; border-radius:50%; box-shadow:8px 8px 16px #b8bcc2, -8px -8px 16px #ffffff; background:conic-gradient(#4f46e5 0% 25%, #f59e0b 25% 50%, #e63946 50% 75%, #10b981 75% 100%); transition:transform 3s cubic-bezier(0.17, 0.67, 0.12, 0.99); position:relative; }
+        .wheel::after { content:''; position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); width:35px; height:35px; background:#e0e5ec; border-radius:50%; box-shadow:inset 3px 3px 6px #b8bcc2; }
+        .pointer { position:absolute; top:-10px; left:50%; transform:translateX(-50%); width:0; height:0; border-left:12px solid transparent; border-right:12px solid transparent; border-top:18px solid #333; z-index:2; }
+
+        /* PAYMENT & SLOT GRID */
+        .pay-methods { display:flex; gap:10px; margin-bottom:20px; overflow-x:auto; padding-bottom:10px; }
+        .pay-methods::-webkit-scrollbar { height: 4px; }
+        .pay-methods::-webkit-scrollbar-thumb { background: #b8bcc2; border-radius: 4px; }
+        .pay-method-card { flex:0 0 auto; background:#e0e5ec; padding:15px; border-radius:12px; text-align:center; width:95px; box-shadow:4px 4px 8px #b8bcc2, -4px -4px 8px #ffffff; cursor:pointer; border:2px solid transparent; transition: 0.2s; }
+        .pay-method-card.active { border-color:#4f46e5; box-shadow:inset 3px 3px 6px #b8bcc2, inset -3px -3px 6px #ffffff; transform: translateY(-2px); }
+
+        .slot-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 15px; margin-bottom: 20px; }
+        .recharge-slot { grid-template-columns: repeat(2, 1fr); }
+        .slot-card { background: #e0e5ec; padding: 15px 5px; border-radius: 12px; text-align: center; box-shadow: 4px 4px 8px #b8bcc2, -4px -4px 8px #ffffff; cursor: pointer; border: 2px solid transparent; transition: 0.2s; }
+        .slot-card.active { border-color: #4f46e5; box-shadow: inset 3px 3px 6px #b8bcc2, inset -3px -3px 6px #ffffff; transform: scale(0.95); }
+        .slot-card.disabled { opacity: 0.5; cursor: not-allowed; }
+        .slot-card h4 { color: #4f46e5; font-size: 16px; margin-bottom: 3px; }
+        .slot-card p { font-size: 10px; color: #666; font-weight: bold; }
+        .slot-card .coin-req { font-size: 11px; color: #f59e0b; display: block; margin-top: 4px; font-weight:bold; }
+
+        /* HISTORY */
+        .history-item { background: #e0e5ec; padding: 15px; border-radius: 12px; box-shadow: 4px 4px 8px #b8bcc2, -4px -4px 8px #ffffff; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: flex-start; }
+        .badge { padding: 4px 8px; border-radius: 8px; font-size: 10px; font-weight: bold; }
+        .badge-pending { background: #fef08a; color: #854d0e; }
+        .badge-success { background: #bbf7d0; color: #166534; }
+        .badge-reject { background: #fecaca; color: #991b1b; }
+        .rejection-reason { display: block; font-size: 10px; color: #dc2626; background: #fee2e2; padding: 6px; border-radius: 6px; margin-top: 8px; width: fit-content; font-weight: 500; }
+
+        /* BOTTOM NAV */
+        .bottom-nav { position:fixed; bottom:0; left:0; width:100%; background:#e0e5ec; display:flex; justify-content:space-around; padding:10px 0 12px; box-shadow:0 -4px 15px rgba(0,0,0,0.05); z-index:100; border-top-left-radius:20px; border-top-right-radius:20px; }
+        .nav-item { text-align:center; color:#6b7280; font-size:11px; cursor:pointer; flex:1; transition: 0.3s; }
+        .nav-item i { font-size:18px; display:block; margin-bottom:3px; transition: 0.3s; }
+        .nav-item.active { color:#4f46e5; font-weight:bold; }
+        .nav-item.active i { transform: translateY(-3px); }
+
+        /* NOTIFICATION MODAL */
+        #notifModal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:100000; justify-content:center; align-items:center; padding:20px; }
+        .notif-box { background:#e0e5ec; width:100%; max-width:360px; padding:20px; border-radius:20px; text-align:center; box-shadow: 0 15px 30px rgba(0,0,0,0.2); max-height: 80vh; display: flex; flex-direction: column; }
+        #notifList::-webkit-scrollbar { display: none; }
+        .notif-card { position: relative; padding: 12px; border-radius: 10px; margin-bottom: 10px; text-align: left; }
+        .notif-card .del-btn { position: absolute; top: 12px; right: 12px; color: #ef4444; font-size: 15px; cursor: pointer; transition: 0.2s; background: rgba(255,255,255,0.5); width: 22px; height: 22px; border-radius: 50%; display: flex; justify-content: center; align-items: center; box-shadow: inset 1px 1px 3px rgba(0,0,0,0.1); }
+        .notif-card .del-btn:active { transform: scale(0.9); }
+
+        /* ADSTERRA BANNER CONTAINER (Global) */
+        #adsterra-ads-container {
+            position: fixed;
+            bottom: 60px;
+            left: 0;
+            width: 100%;
+            background-color: transparent;
+            text-align: center;
+            padding: 5px 0;
+            z-index: 98;
+            min-height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: 0.3s ease;
+        }
+    </style>
+</head>
+<body oncontextmenu="return false;">
+
+    <!-- STARTUP POPUP AD -->
+    <div id="startupPopup">
+        <div class="popup-box">
+            <div class="popup-close" onclick="closeStartupPopup()"><i class="fas fa-times"></i></div>
+            <img id="startupPopupImg" src="" style="width:100%; height:100%; border-radius:15px; object-fit:contain;">
+        </div>
+    </div>
+
+    <!-- NOTIFICATION MODAL -->
+    <div id="notifModal">
+        <div class="notif-box">
+            <i class="fas fa-bell" style="font-size:35px; color:#f59e0b; margin-bottom:10px; animation: bounce 2s infinite;"></i>
+            <h3 style="margin-bottom:15px; color:#333; font-size: 16px;">My Messages</h3>
+            <div id="notifList" style="overflow-y: auto; flex: 1; margin-bottom: 15px; min-height: 100px;">
+                <p style="text-align:center; font-size:12px; color:#888;">Loading messages...</p>
+            </div>
+            <button class="btn-3d" style="width:100%; margin-top: auto;" onclick="closeNotifications()"><i class="fas fa-check"></i> Close</button>
+        </div>
+    </div>
+
+    <!-- SPLASH SCREEN -->
+    <div id="splashScreen">
+        <img id="splashImg" src="https://cdn-icons-png.flaticon.com/512/2953/2953363.png" alt="Splash">
+        <div class="splash-text">Pro Earning</div>
+    </div>
+
+    <!-- NETWORK TOAST -->
+    <div id="networkToast"><i class="fas fa-wifi"></i> <span>Online</span></div>
+
+    <!-- MAINTENANCE MODE OVERLAY -->
+    <div id="maintenanceOverlay">
+        <img id="maintDynamicImg" src="" style="display:none;">
+        <i class="fas fa-tools" id="maintIcon"></i>
+        <h2>App Under Maintenance</h2>
+        <p>We are currently upgrading our servers to provide you a better experience. Please check back later.</p>
+    </div>
+
+    <!-- TOP APP BAR -->
+    <div class="app-bar" id="topNavbar" style="display: none;">
+        <div class="app-title"><i class="fas fa-bars" onclick="toggleDrawer()" style="cursor:pointer; color:#6b7280;"></i> <span id="headerTitle">Dashboard</span></div>
+    </div>
+
+    <!-- SIDE DRAWER -->
+    <div class="drawer-overlay" id="drawerOverlay" onclick="toggleDrawer()"></div>
+    <div class="drawer" id="sideDrawer">
+        <div style="text-align:center; margin-bottom:20px; border-bottom:1px solid #ccc; padding-bottom:15px; flex-shrink: 0;">
+            <div style="width: 60px; height: 60px; border-radius: 50%; background: #e0e5ec; box-shadow: 4px 4px 8px #b8bcc2, -4px -4px 8px #ffffff; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #4f46e5;"><i class="fas fa-user"></i></div>
+            <h4 id="drawerUserEmail" style="font-size: 13px;">user@gmail.com</h4>
+            <!-- LEVEL BADGE IN DRAWER -->
+            <p style="font-size: 11px; color: #f59e0b; font-weight: bold; margin-top: 5px;"><i class="fas fa-star"></i> Level <span id="drawerUserLevel">1</span></p>
+        </div>
+        
+        <div style="flex: 1; overflow-y: auto; padding-right: 5px; padding-bottom: 20px;">
+            <div class="drawer-item" onclick="switchTab('tab-home', document.getElementById('nav-home')); toggleDrawer();"><i class="fas fa-home" style="color:#4f46e5;"></i> Home</div>
+            <div class="drawer-item" onclick="switchTab('tab-leaderboard'); toggleDrawer();"><i class="fas fa-trophy" style="color:#f59e0b;"></i> Leaderboard</div>
+            <div class="drawer-item" onclick="switchTab('tab-refer'); toggleDrawer();"><i class="fas fa-users" style="color:#10b981;"></i> Refer & Earn</div>
+            <div class="drawer-item" onclick="switchTab('tab-wallet', document.getElementById('nav-wallet')); toggleDrawer();"><i class="fas fa-wallet" style="color:#10b981;"></i> Wallet & Withdraw</div>
+            <div class="drawer-item" onclick="switchTab('tab-history', document.getElementById('nav-history')); toggleDrawer();"><i class="fas fa-history" style="color:#059669;"></i> My History</div>
+            <div class="drawer-item" onclick="switchTab('tab-support', document.getElementById('nav-support')); toggleDrawer();"><i class="fas fa-headset" style="color:#6366f1;"></i> Support Tickets</div>
+            <div class="drawer-item" onclick="openPrivacyPolicy(); toggleDrawer();"><i class="fas fa-shield-alt" style="color:#8b5cf6;"></i> Privacy Policy</div>
+            
+            <div id="drawerLinksContainer" style="margin-top: 15px; border-top: 1px solid #ccc; padding-top: 15px; display:none;">
+                <h4 style="font-size:12px; color:#666; margin-bottom:10px; text-align:center;">Connect With Us</h4>
+            </div>
+        </div>
+
+        <div class="drawer-item" style="color: #e63946; margin-top: 10px; flex-shrink: 0;" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</div>
+    </div>
+
+    <!-- MAIN BODY -->
+    <div class="main-content">
+
+        <!-- AUTH SCREEN -->
+        <div id="authScreen" class="tab-content" style="padding-top: 20px;">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <i class="fas fa-shield-alt" style="font-size: 45px; color: #4f46e5;"></i>
+                <h2 id="authTitle">Secure Login</h2>
+            </div>
+            
+            <div class="auth-card" id="loginFormCard">
+                <div class="input-group"><i class="fas fa-envelope"></i><input type="email" id="loginEmail" placeholder="Enter Gmail ID"></div>
+                <div class="input-group"><i class="fas fa-lock"></i><input type="password" id="loginPassword" placeholder="Enter Password"></div>
+                <div style="text-align: right; margin-bottom: 12px;"><span style="font-size: 11px; color: #4f46e5; cursor: pointer; font-weight: bold;" onclick="resetPassword()">Forgot Password?</span></div>
+                <button class="btn-3d" id="loginBtn" onclick="loginUser()"><i class="fas fa-sign-in-alt"></i> Login</button>
+                <p style="text-align: center; font-size: 12px; margin-top: 15px; color: #666;">Don't have an account? <span style="color: #4f46e5; font-weight: bold; cursor: pointer;" onclick="toggleAuthMode('signup')">Create New</span></p>
+            </div>
+
+            <div class="auth-card" id="signupFormCard" style="display: none;">
+                <div class="input-group"><i class="fas fa-envelope"></i><input type="email" id="signupEmail" placeholder="Enter Gmail ID"></div>
+                <div class="input-group"><i class="fas fa-lock"></i><input type="password" id="signupPassword" placeholder="Create Password"></div>
+                <button class="btn-3d" id="signupBtn" onclick="signupUser()"><i class="fas fa-user-plus"></i> Create Account</button>
+                <p style="text-align: center; font-size: 12px; margin-top: 15px; color: #666;">Already have an account? <span style="color: #4f46e5; font-weight: bold; cursor: pointer;" onclick="toggleAuthMode('login')">Login Here</span></p>
+            </div>
+        </div>
+
+        <!-- TAB: HOME -->
+        <div id="tab-home" class="tab-content">
+            
+            <div class="home-fixed-top">
+                <div class="compact-header">
+                    <div class="header-left">
+                        <i class="fas fa-bars menu-btn" onclick="toggleDrawer()"></i>
+                        <div class="user-info">
+                            <h3 id="homeUserName">User</h3>
+                            <!-- LEVEL BADGE IN HEADER -->
+                            <p><i class="fas fa-star" style="color: #fef08a;"></i> Lvl <span id="headerUserLevel">1</span> | Welcome!</p>
+                        </div>
+                    </div>
+                    
+                    <div class="header-right">
+                        <div class="coin-capsule" onclick="switchTab('tab-wallet', document.getElementById('nav-wallet'))">
+                            <i class="fas fa-coins"></i>
+                            <span id="homeWalletBalance">0</span>
+                        </div>
+                        <div class="bell-icon" onclick="showNotifications()">
+                            <i class="fas fa-bell"></i>
+                            <div class="notif-dot" id="notifDot"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="globalNoticeContainer" style="display:none; background: #fee2e2; border-left: 4px solid #dc2626; padding: 8px 12px; border-radius: 8px; margin-bottom: 15px; box-shadow: inset 2px 2px 5px #b8bcc2, inset -2px -2px 5px #ffffff; align-items: center; gap: 8px;">
+                    <i class="fas fa-bullhorn" style="color: #dc2626; font-size: 14px;"></i>
+                    <marquee id="globalNoticeText" behavior="scroll" direction="left" scrollamount="4" style="font-size: 12px; color: #dc2626; font-weight: 600; width: 100%; margin: 0;"></marquee>
+                </div>
+
+                <div class="banner-slider" id="homeBannerImgContainer"></div>
+            </div>
+            
+            <div style="padding-top: 5px;">
+                <h3 style="font-size:15px; margin-bottom:15px;">Earning Tasks</h3>
+                <div class="grid-3d">
+                    <div class="card-3d" onclick="switchTab('tab-checkin')"><div class="icon-circle icon-checkin"><i class="fas fa-calendar-check"></i></div><h3>Daily Check-in</h3></div>
+                    <div class="card-3d" onclick="switchTab('tab-spin')"><div class="icon-circle icon-spin"><i class="fas fa-dharmachakra"></i></div><h3>Spin & Win</h3></div>
+                    <div class="card-3d" onclick="switchTab('tab-scratch')"><div class="icon-circle icon-scratch"><i class="fas fa-ticket-alt"></i></div><h3>Scratch Card</h3></div>
+                    <div class="card-3d" onclick="switchTab('tab-watch')"><div class="icon-circle icon-watch"><i class="fas fa-video"></i></div><h3>Watch Video</h3></div>
+                    <div class="card-3d" onclick="switchTab('tab-refer')"><div class="icon-circle icon-refer"><i class="fas fa-users"></i></div><h3>Refer & Earn</h3></div>
+                    <div class="card-3d" onclick="switchTab('tab-withdraw', document.getElementById('nav-wallet'))"><div class="icon-circle icon-withdraw"><i class="fas fa-university"></i></div><h3>Withdraw</h3></div>
+                </div>
+                
+                <h3 style="font-size:15px; margin-top:20px; margin-bottom:15px; display:none;" id="extraTasksTitle">Extra Watch Tasks</h3>
+                <div id="dynamicTasksContainer" style="display:flex; flex-direction:column; gap:10px;"></div>
+            </div>
+        </div>
+
+        <!-- EARNING TABS -->
+        <div id="tab-checkin" class="tab-content">
+            <h3><i class="fas fa-calendar-check" style="color:#4f46e5;"></i> Daily Check-in</h3>
+            <div class="auth-card" style="text-align: center;">
+                <div class="icon-circle icon-checkin" style="width: 80px; height: 80px; font-size: 35px; margin-bottom: 15px;"><i class="fas fa-gift"></i></div>
+                <p style="font-size: 12px; color: #666;">Come back every day to earn free bonus coins!</p>
+                <div id="checkinTimer" style="font-size: 24px; font-weight: bold; color: #e63946; margin: 20px 0;">Loading...</div>
+                <button class="btn-3d" id="claimCheckinBtn" onclick="initiateSecureAd('checkin', 1, this)"><i class="fas fa-coins"></i> Claim <span id="dailyBonusAmt">10</span> Coins Now</button>
+            </div>
+        </div>
+
+        <div id="tab-spin" class="tab-content">
+            <h3><i class="fas fa-dharmachakra" style="color:#f59e0b;"></i> Spin Wheel</h3>
+            <div class="wheel-container"><div class="pointer"></div><div class="wheel" id="wheelBox"></div></div>
+            <button class="btn-3d" id="spinBtn" onclick="initiateSecureAd('spin', 1, this)"><i class="fas fa-dharmachakra"></i> Tap to Spin</button>
+        </div>
+
+        <div id="tab-scratch" class="tab-content">
+            <h3><i class="fas fa-ticket-alt" style="color:#8b5cf6;"></i> Scratch & Win</h3>
+            <div class="auth-card" style="text-align: center;">
+                <div class="icon-circle icon-scratch" style="margin-bottom: 15px;"><i class="fas fa-ticket-alt"></i></div>
+                <div id="scratchContainer" style="position: relative; width: 250px; height: 150px; margin: 0 auto; background: #10b981; border-radius: 15px; display: flex; align-items: center; justify-content: center; box-shadow: inset 4px 4px 8px rgba(0,0,0,0.2); overflow: hidden;">
+                    <h2 id="scratchReward" style="color: white; font-size: 24px; display: none;">🎁 0 Coins!</h2>
+                    <canvas id="scratchCanvas" style="position: absolute; top: 0; left: 0; border-radius: 15px; cursor: crosshair; touch-action: none;"></canvas>
+                </div>
+                <button class="btn-3d" id="scratchBtn" onclick="initiateSecureAd('scratch', 1, this)" style="margin-top: 20px;"><i class="fas fa-unlock"></i> Unlock Card</button>
+            </div>
+        </div>
+
+        <div id="tab-watch" class="tab-content">
+            <h3><i class="fas fa-video" style="color:#e63946;"></i> Watch Video Task</h3>
+            <div class="auth-card" style="text-align: center;">
+                <div class="icon-circle icon-watch" style="width: 80px; height: 80px; font-size: 35px; margin-bottom: 15px;"><i class="fas fa-play-circle"></i></div>
+                <p style="font-size: 13px; color: #666; margin-bottom: 15px;">Claim your guaranteed task reward.</p>
+                <button class="btn-3d" id="watchBtn" onclick="initiateSecureAd('watch', 1, this)"><i class="fas fa-gift"></i> Claim Reward</button>
+            </div>
+        </div>
+
+        <!-- LEADERBOARD -->
+        <div id="tab-leaderboard" class="tab-content">
+            <h3 style="margin-bottom: 15px;"><i class="fas fa-trophy" style="color:#f59e0b;"></i> Top Earners</h3>
+            <div id="leaderboardList"><p style="text-align:center; font-size:12px;">Loading...</p></div>
+        </div>
+
+        <!-- REFER & EARN -->
+        <div id="tab-refer" class="tab-content">
+            <h3><i class="fas fa-users" style="color:#10b981;"></i> Refer & Earn</h3>
+            <div class="auth-card" style="text-align: center;">
+                <div class="icon-circle icon-refer" style="width: 80px; height: 80px; font-size: 35px; margin-bottom: 15px;"><i class="fas fa-share-alt"></i></div>
+                <p style="font-size: 12px; margin-bottom: 10px; color: #666;">Share your link and earn <b id="referBonusAmt">100</b> bonus coins when someone signs up!</p>
+                <div class="input-group"><i class="fas fa-link"></i><input type="text" id="referLink" readonly></div>
+                <button class="btn-3d" onclick="copyReferLink()"><i class="fas fa-copy"></i> Copy Link</button>
+            </div>
+        </div>
+
+        <!-- WALLET & WITHDRAW -->
+        <div id="tab-wallet" class="tab-content">
+            <div class="auth-card" style="text-align: center; margin-bottom: 20px;">
+                <p style="font-size: 12px; color: #666;">Available Balance</p>
+                <h1 style="color: #4f46e5; margin: 5px 0;">🪙 <span id="walletCoinsDisplayFull">0</span></h1>
+            </div>
+            <div class="grid-3d">
+                <div class="card-3d" onclick="switchTab('tab-withdraw')"><div class="icon-circle icon-withdraw"><i class="fas fa-university"></i></div><h3>Withdraw Money</h3></div>
+                <div class="card-3d" onclick="switchTab('tab-recharge')"><div class="icon-circle" style="background: linear-gradient(135deg, #f59e0b, #fbbf24);"><i class="fas fa-mobile-alt"></i></div><h3>Mobile Recharge</h3></div>
+            </div>
+        </div>
+
+        <div id="tab-withdraw" class="tab-content">
+            <h3 style="margin-bottom: 15px;"><i class="fas fa-university" style="color:#059669;"></i> Withdraw</h3>
+            <div class="auth-card">
+                <div class="pay-methods">
+                    <div class="pay-method-card active" onclick="selectPayMethod('UPI', this)"><i class="fas fa-mobile-alt" style="color:#4f46e5; font-size:24px; margin-bottom:5px;"></i><p>UPI</p></div>
+                    <div class="pay-method-card" onclick="selectPayMethod('Bank', this)"><i class="fas fa-university" style="color:#059669; font-size:24px; margin-bottom:5px;"></i><p>Bank</p></div>
+                    <div class="pay-method-card" onclick="selectPayMethod('Game', this)"><i class="fas fa-gamepad" style="color:#8b5cf6; font-size:24px; margin-bottom:5px;"></i><p>Game</p></div>
+                </div>
+
+                <div id="formUPI"><div class="input-group"><i class="fas fa-id-badge"></i><input type="text" id="upiId" placeholder="Enter UPI / Paytm ID"></div></div>
+                
+                <div id="formBank" style="display: none;">
+                    <div class="input-group"><i class="fas fa-user"></i><input type="text" id="bankName" placeholder="Account Holder Name"></div>
+                    <div class="input-group"><i class="fas fa-university"></i><input type="number" id="bankAcc" placeholder="Account Number"></div>
+                    <div class="input-group"><i class="fas fa-code"></i><input type="text" id="bankIfsc" placeholder="IFSC Code"></div>
+                </div>
+
+                <div id="formGame" style="display: none;">
+                    <div class="input-group"><i class="fas fa-id-badge"></i><input type="text" id="gameUID" placeholder="Enter Player UID"></div>
+                    <p style="font-size: 10px; color: #8b5cf6; margin-bottom: 10px;">Ensure UID is correct. Wrong UID top-ups cannot be refunded.</p>
+                </div>
+
+                <p style="font-size:12px; font-weight:bold; margin-top:10px; margin-bottom:10px;">Select Withdrawal Amount:</p>
+                <div class="slot-grid" id="withdrawSlotsContainer"></div>
+                
+                <p id="withdrawLimitsWarn" style="font-size: 10px; color: #666; margin-bottom: 10px; text-align: center;">Min: ₹<span id="sysMinW">0</span> | Max: ₹<span id="sysMaxW">0</span></p>
+
+                <button class="btn-3d" id="withdrawBtn" onclick="initiateSecureAd('withdraw', 1, this)"><i class="fas fa-paper-plane"></i> Submit Request</button>
+            </div>
+        </div>
+
+        <!-- RECHARGE -->
+        <div id="tab-recharge" class="tab-content">
+            <h3 style="margin-bottom: 15px;"><i class="fas fa-mobile-alt" style="color:#f59e0b;"></i> Mobile Recharge</h3>
+            <div class="auth-card">
+                <div style="display:flex; gap:10px; margin-bottom:15px;">
+                    <div class="input-group" style="flex:1;"><select id="recOperator" onchange="loadRechargeSlots()"><option>Jio</option><option>Airtel</option><option>Vi</option><option>BSNL</option></select></div>
+                    <div class="input-group" style="flex:1;"><select id="recCircle"><option>Delhi</option><option>Mumbai</option><option>UP</option><option>Other</option></select></div>
+                </div>
+                <div class="input-group"><i class="fas fa-phone"></i><input type="number" id="recMobile" placeholder="10-digit Mobile No."></div>
+                
+                <p style="font-size:12px; font-weight:bold; margin-top:10px; margin-bottom:10px;">Select Plan:</p>
+                <div class="slot-grid recharge-slot" id="rechargeSlotsContainer"></div>
+                
+                <button class="btn-3d" id="rechargeBtn" onclick="initiateSecureAd('recharge', 1, this)"><i class="fas fa-paper-plane"></i> Submit Recharge</button>
+            </div>
+        </div>
+
+        <!-- HISTORY -->
+        <div id="tab-history" class="tab-content">
+            <h3 style="margin-bottom: 15px;"><i class="fas fa-history" style="color:#059669;"></i> Transaction History</h3>
+            <div id="historyList"></div>
+        </div>
+
+        <!-- SUPPORT -->
+        <div id="tab-support" class="tab-content">
+            <h3 style="margin-bottom: 15px;"><i class="fas fa-headset" style="color:#6366f1;"></i> Support Tickets</h3>
+            <div class="auth-card">
+                <div style="text-align: center;">
+                    <div class="icon-circle icon-support" style="width: 80px; height: 80px; font-size: 35px; margin-bottom: 15px;"><i class="fas fa-life-ring"></i></div>
+                </div>
+                <p style="font-size: 13px; font-weight: bold; margin-bottom: 10px;">Create New Ticket</p>
+                <div class="input-group"><i class="fas fa-tag"></i><input type="text" id="supSubject" placeholder="Subject"></div>
+                <div class="input-group"><i class="fas fa-comment"></i><textarea id="supMsg" placeholder="Describe your problem..." style="height:80px;"></textarea></div>
+                <button class="btn-3d" onclick="submitSupport()"><i class="fas fa-paper-plane"></i> Submit Issue</button>
+            </div>
+            <h4 style="font-size: 14px; margin-bottom: 10px; margin-top: 20px;">My Tickets</h4>
+            <div id="myTicketsList"></div>
+        </div>
+    </div>
+
+    <!-- ADSTERRA BANNER CONTAINER (Global) -->
+    <div id="adsterra-ads-container" style="display: none;">
+        <script type="text/javascript">
+            atOptions = {
+                'key' : '4b8bdea4885314b65b76bc2c35cb62b4',
+                'format' : 'iframe',
+                'height' : 50,
+                'width' : 320,
+                'params' : {}
+            };
+        </script>
+        <script type="text/javascript" src="https://www.highrevenueformat.com/4b8bdea4885314b65b76bc2c35cb62b4/invoke.js"></script>
+    </div>
+
+    <!-- BOTTOM NAV -->
+    <div class="bottom-nav" id="bottomNav" style="display: none;">
+        <div class="nav-item active" id="nav-home" onclick="switchTab('tab-home', this)"><i class="fas fa-home"></i> Home</div>
+        <div class="nav-item" id="nav-wallet" onclick="switchTab('tab-wallet', this)"><i class="fas fa-wallet"></i> Wallet</div>
+        <div class="nav-item" id="nav-history" onclick="switchTab('tab-history', this)"><i class="fas fa-history"></i> History</div>
+        <div class="nav-item" id="nav-support" onclick="switchTab('tab-support', this)"><i class="fas fa-headset"></i> Support</div>
+    </div>
+
+    <script>
+        // SAFELY LOAD SPLASH SCREEN FROM LOCAL STORAGE
+        try {
+            let savedSplash = localStorage.getItem('adminSplashUrl');
+            if (savedSplash) {
+                let splashImg = document.getElementById('splashImg');
+                if(splashImg) splashImg.src = savedSplash;
+            }
+        } catch(e) {}
+
+        // ANTI-HACK KEYBOARD SHORTCUTS
+        document.onkeydown = function(e) {
+            if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && e.keyCode == 73)) { return false; }
+        };
+
+        function showNetworkToast(msg, statusType) {
+            let t = document.getElementById('networkToast');
+            let icon = statusType === 'online' ? '<i class="fas fa-wifi"></i>' : (statusType === 'slow' ? '<i class="fas fa-spinner fa-spin"></i>' : '<i class="fas fa-plane-slash"></i>');
+            t.innerHTML = `${icon} <span>${msg}</span>`;
+            
+            t.className = ""; 
+            if(statusType === 'online') { t.classList.add('toast-online'); }
+            else if(statusType === 'slow') { t.classList.add('toast-slow'); }
+            else { t.classList.add('toast-offline'); }
+            
+            t.classList.add('show');
+            setTimeout(() => { t.classList.remove('show'); }, 4000);
+        }
+
+        function showCoinToast(amount) {
+            let t = document.getElementById('networkToast');
+            t.innerHTML = `<i class="fas fa-coins" style="color: #fef08a;"></i> <span>+${amount} Coins Added!</span>`;
+            t.className = ""; t.classList.add('toast-online'); t.classList.add('show');
+            setTimeout(() => { t.classList.remove('show'); }, 3000);
+        }
+
+        function showLevelToast(level) {
+            let t = document.getElementById('networkToast');
+            t.innerHTML = `<i class="fas fa-star" style="color: #fef08a;"></i> <span>Level Up! Welcome to Lvl ${level}</span>`;
+            t.className = ""; t.classList.add('toast-online'); t.classList.add('show');
+            setTimeout(() => { t.classList.remove('show'); }, 4000);
+        }
+
+        window.addEventListener('offline', () => { showNetworkToast("No Internet Connection!", "offline"); });
+        window.addEventListener('online', () => showNetworkToast("Back Online!", "online"));
+
+        setTimeout(() => {
+            let splash = document.getElementById('splashScreen');
+            if(splash && splash.style.display !== 'none') {
+                splash.style.opacity = '0';
+                setTimeout(() => splash.style.display = 'none', 500);
+                if(!navigator.onLine) showNetworkToast("Network is slow or disconnected", "slow");
+            }
+        }, 3500);
+
+        // FIREBASE SETUP
+        const firebaseConfig = {
+            apiKey: "AIzaSyA6OOMNr_zifgdpqHRQqJ8UybnSe1nM_kQ",
+            authDomain: "xearnig.firebaseapp.com",
+            databaseURL: "https://xearnig-default-rtdb.firebaseio.com",
+            projectId: "xearnig",
+            storageBucket: "xearnig.firebasestorage.app",
+            messagingSenderId: "98283098056",
+            appId: "1:98283098056:web:6dc245830d970ff24b7afd"
+        };
+        try { firebase.initializeApp(firebaseConfig); } catch(e) { console.error("Firebase init error", e); }
+        
+        const auth = firebase.auth();
+        const db = firebase.database();
+        
+        db.ref('.info/connected').on('value', function(snap) {});
+
+        let currentUser = null;
+        let currentCoins = 0;
+        let currentTab = '';
+        
+        // --- LEVEL SYSTEM VARIABLES ---
+        let currentLevel = 1;
+        let previousLevel = 0;
+        let sysLevels = {
+            1: { minCoins: 0, spinMin: 1, spinMax: 10, scratchMin: 5, scratchMax: 20, watchReward: 5 }
+        };
+        
+        let sysMinWithdraw = 0, sysMaxWithdraw = 10000;
+        let sysDailyBonus = 10, sysReferBonus = 100;
+        let sysReferBaseUrl = "https://proearning.com/ref", sysPrivacyUrl = "";
+        
+        let sysSpinMin = 1, sysSpinMax = 10, sysScratchMin = 5, sysScratchMax = 20, sysWatchReward = 5;
+
+        let globalAdminNotice = "";
+        let userNotifications = [];
+        let activeWSlotRef = null, activeRSlotRef = null;
+
+        // POPUP & MAINTENANCE VARIABLES
+        let sysStartupPopupUrl = "";
+        let startupPopupShown = false;
+        let maintImagesArray = [];
+        let maintImgIndex = 0;
+        let maintInterval = null;
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playCoinSound() {
+            try {
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                let osc = audioCtx.createOscillator(); let gain = audioCtx.createGain();
+                osc.type = 'sine'; osc.frequency.setValueAtTime(987.77, audioCtx.currentTime); 
+                osc.frequency.exponentialRampToValueAtTime(1318.51, audioCtx.currentTime + 0.08); 
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
+                osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + 0.35);
+            } catch(e) {}
+        }
+
+        window.onload = () => {
+            fetchDynamicSettings();
+            loadDynamicContent();
+        };
+
+        function loadAdsterraSocialBar() {
+            if (!document.getElementById('adsterra-social-script')) {
+                let script = document.createElement('script');
+                script.id = 'adsterra-social-script';
+                script.type = 'text/javascript';
+                script.src = "https://pl31000788.profitableratecpmnetwork.com/57/9d/c1/579dc12f478f6f05993cafeeabedb250.js";
+                document.body.appendChild(script);
+            }
+        }
+
+        function updateNotifDot(unreadPersonalCount) { document.getElementById('notifDot').style.display = unreadPersonalCount > 0 ? 'block' : 'none'; }
+
+        function showNotifications() {
+            let list = document.getElementById('notifList');
+            list.innerHTML = ""; let hasNotifs = false;
+
+            if(userNotifications.length > 0) {
+                let sorted = [...userNotifications].sort((a,b) => b.time - a.time);
+                sorted.forEach(n => {
+                    let bg = n.read ? '#e0e5ec' : '#d1fae5', border = n.read ? '#ccc' : '#10b981';
+                    let shadow = n.read ? 'box-shadow: inset 2px 2px 5px #b8bcc2, inset -2px -2px 5px #ffffff;' : 'box-shadow: 4px 4px 8px #b8bcc2, -4px -4px 8px #ffffff;';
+                    let dateStr = n.time ? new Date(n.time).toLocaleString() : '';
+                    
+                    list.innerHTML += `
+                    <div class="notif-card" style="background: ${bg}; border-left: 4px solid ${border}; ${shadow}">
+                        <div class="del-btn" onclick="deleteNotification('${n.key}')"><i class="fas fa-times"></i></div>
+                        <strong style="font-size:13px; color:#333; display:block; padding-right:20px;">${n.title || 'Message'}</strong>
+                        <p style="font-size:12px; color:#555; margin-top:4px; margin-bottom:4px; padding-right:10px;">${n.message}</p>
+                        <span style="font-size:9px; color:#888;">${dateStr}</span>
+                    </div>`;
+                });
+                hasNotifs = true;
+            }
+
+            if(!hasNotifs) list.innerHTML = `<p style="text-align:center; font-size:12px; color:#888; padding:20px;">No new messages.</p>`;
+            document.getElementById('notifModal').style.display = 'flex';
+            document.getElementById('notifDot').style.display = 'none';
+
+            if(currentUser && userNotifications.length > 0) {
+                let updates = {};
+                userNotifications.forEach(n => { if(!n.read) updates[n.key + '/read'] = true; });
+                if(Object.keys(updates).length > 0) db.ref('notifications/' + currentUser.uid).update(updates);
+            }
+        }
+
+        function deleteNotification(key) {
+            if(confirm("Delete this message?")) {
+                db.ref('notifications/' + currentUser.uid + '/' + key).remove().then(() => {
+                    userNotifications = userNotifications.filter(n => n.key !== key);
+                    showNotifications(); 
+                });
+            }
+        }
+
+        function closeNotifications() { document.getElementById('notifModal').style.display = 'none'; }
+
+        function checkAndShowPopup() {
+            if (!sysStartupPopupUrl || sysStartupPopupUrl.trim() === "") return;
+            
+            if (currentUser && !startupPopupShown && currentTab === 'tab-home') {
+                let popupImg = document.getElementById('startupPopupImg');
+                let tempImg = new Image();
+                tempImg.src = sysStartupPopupUrl;
+                
+                tempImg.onload = function() {
+                    popupImg.src = sysStartupPopupUrl;
+                    document.getElementById('startupPopup').style.display = 'flex';
+                    startupPopupShown = true;
+                };
+                
+                tempImg.onerror = function() {
+                    console.log("Popup Image load error. Link might be broken.");
+                };
+            }
+        }
+
+        function closeStartupPopup() { document.getElementById('startupPopup').style.display = 'none'; }
+
+        // MAINTENANCE SLIDER LOGIC
+        function updateMaintenanceView(isMaint, imagesObj) {
+            let overlay = document.getElementById('maintenanceOverlay');
+            let maintImgEl = document.getElementById('maintDynamicImg');
+            let iconEl = document.getElementById('maintIcon');
+            
+            if (isMaint) {
+                overlay.style.display = 'flex';
+                clearInterval(maintInterval);
+                maintImagesArray = [];
+                
+                if(imagesObj) maintImagesArray = Object.values(imagesObj).filter(u => u && u.trim() !== "");
+                
+                if(maintImagesArray.length > 0) {
+                    iconEl.style.display = 'none';
+                    maintImgEl.style.display = 'block';
+                    maintImgEl.src = maintImagesArray[0];
+                    
+                    if(maintImagesArray.length > 1) {
+                        maintInterval = setInterval(() => {
+                            maintImgIndex = (maintImgIndex + 1) % maintImagesArray.length;
+                            maintImgEl.src = maintImagesArray[maintImgIndex];
+                        }, 2500);
+                    }
+                } else {
+                    iconEl.style.display = 'block';
+                    maintImgEl.style.display = 'none';
+                }
+            } else {
+                overlay.style.display = 'none';
+                clearInterval(maintInterval);
+            }
+        }
+
+        function fetchDynamicSettings() {
+            db.ref('settings/splashUrl').on('value', snap => { 
+                let url = snap.val();
+                if(url && url.trim() !== "") {
+                    url = url.replace("http://", "https://");
+                    document.getElementById('splashImg').src = url; 
+                    try { localStorage.setItem('adminSplashUrl', url); } catch(e) {}
+                } else {
+                    document.getElementById('splashImg').src = "https://cdn-icons-png.flaticon.com/512/2953/2953363.png";
+                    try { localStorage.removeItem('adminSplashUrl'); } catch(e) {}
+                }
+            });
+            
+            db.ref('settings/privacyUrl').on('value', snap => { sysPrivacyUrl = snap.val() || ""; });
+            
+            db.ref('admin/banners').on('value', snap => {
+                let bannerBox = document.getElementById('homeBannerImgContainer');
+                if(snap.exists()) {
+                    bannerBox.style.display = 'flex';
+                    bannerBox.innerHTML = '';
+                    snap.forEach(child => {
+                        let url = child.val().url || child.val();
+                        bannerBox.innerHTML += `<img class="banner-slide" src="${url}" alt="Promo Banner">`;
+                    });
+                } else {
+                    bannerBox.style.display = 'none';
+                    bannerBox.innerHTML = '';
+                }
+            });
+            
+            db.ref('admin/levels').on('value', snap => {
+                if(snap.exists()) { sysLevels = snap.val(); } 
+                else { sysLevels = { 1: { minCoins: 0, spinMin: 1, spinMax: 10, scratchMin: 5, scratchMax: 20, watchReward: 5 } }; }
+                calculateUserLevel(); 
+            });
+
+            db.ref('admin/settings').on('value', snap => {
+                let d = snap.val(); if(!d) return;
+
+                if (d.startupPopupUrl && d.startupPopupUrl.trim() !== "") {
+                    sysStartupPopupUrl = d.startupPopupUrl.replace("http://", "https://");
+                    checkAndShowPopup();
+                } else {
+                    sysStartupPopupUrl = "";
+                    document.getElementById('startupPopup').style.display = 'none';
+                }
+
+                updateMaintenanceView(d.maintenanceMode, d.maintenanceImages);
+
+                if(d.globalNotice && d.globalNotice.trim() !== "" && d.globalNotice !== "No new messages from Admin.") {
+                    globalAdminNotice = d.globalNotice;
+                    document.getElementById('globalNoticeContainer').style.display = 'flex';
+                    document.getElementById('globalNoticeText').innerText = globalAdminNotice;
+                } else {
+                    globalAdminNotice = "";
+                    document.getElementById('globalNoticeContainer').style.display = 'none';
+                }
+
+                sysMinWithdraw = d.minWithdraw || 0; sysMaxWithdraw = d.maxWithdraw || 10000; 
+                if(document.getElementById('sysMinW')) document.getElementById('sysMinW').innerText = sysMinWithdraw;
+                if(document.getElementById('sysMaxW')) document.getElementById('sysMaxW').innerText = sysMaxWithdraw;
+
+                sysDailyBonus = d.rewardDaily || 10; sysReferBonus = d.rewardReferral || 100;
+                if(document.getElementById('dailyBonusAmt')) document.getElementById('dailyBonusAmt').innerText = sysDailyBonus;
+                if(document.getElementById('referBonusAmt')) document.getElementById('referBonusAmt').innerText = sysReferBonus;
+
+                if(d.referBaseUrl) {
+                    sysReferBaseUrl = d.referBaseUrl;
+                    if(currentUser) document.getElementById('referLink').value = sysReferBaseUrl + "?uid=" + currentUser.uid;
+                }
+                
+                sysSpinMin = d.spinMin !== undefined ? d.spinMin : 1; 
+                sysSpinMax = d.spinMax !== undefined ? d.spinMax : 10;
+                sysScratchMin = d.scratchMin !== undefined ? d.scratchMin : 5; 
+                sysScratchMax = d.scratchMax !== undefined ? d.scratchMax : 20;
+                sysWatchReward = d.watchReward !== undefined ? d.watchReward : 5;
+                
+                calculateUserLevel(); 
+            });
+        }
+        
+        function calculateUserLevel() {
+            if (!currentUser) return;
+            
+            let newLevel = 1;
+            let keys = Object.keys(sysLevels).map(Number).sort((a,b) => sysLevels[a].minCoins - sysLevels[b].minCoins);
+            
+            for (let lvl of keys) { if (currentCoins >= sysLevels[lvl].minCoins) { newLevel = lvl; } }
+            currentLevel = newLevel;
+            
+            if (previousLevel !== 0 && currentLevel > previousLevel) { showLevelToast(currentLevel); }
+            previousLevel = currentLevel;
+            
+            let hLvl = document.getElementById('headerUserLevel');
+            let dLvl = document.getElementById('drawerUserLevel');
+            if(hLvl) hLvl.innerText = currentLevel;
+            if(dLvl) dLvl.innerText = currentLevel;
+            
+            let activeLvl = sysLevels[currentLevel];
+            if (activeLvl) {
+                sysSpinMin = activeLvl.spinReward !== undefined ? activeLvl.spinReward : (activeLvl.spinMin !== undefined ? activeLvl.spinMin : sysSpinMin);
+                sysSpinMax = activeLvl.spinReward !== undefined ? activeLvl.spinReward : (activeLvl.spinMax !== undefined ? activeLvl.spinMax : sysSpinMax);
+                sysScratchMin = activeLvl.scratchReward !== undefined ? activeLvl.scratchReward : (activeLvl.scratchMin !== undefined ? activeLvl.scratchMin : sysScratchMin);
+                sysScratchMax = activeLvl.scratchReward !== undefined ? activeLvl.scratchReward : (activeLvl.scratchMax !== undefined ? activeLvl.scratchMax : sysScratchMax);
+                sysWatchReward = activeLvl.watchReward !== undefined ? activeLvl.watchReward : sysWatchReward;
+            }
+        }
+        
+        function openPrivacyPolicy() {
+            if (sysPrivacyUrl && sysPrivacyUrl !== "") window.open(sysPrivacyUrl, '_blank');
+            else alert("Privacy Policy has not been updated by Admin yet.");
+        }
+
+        function loadDynamicContent() {
+            db.ref('admin/links').on('value', snap => {
+                let drawerBox = document.getElementById('drawerLinksContainer');
+                if (drawerBox) drawerBox.innerHTML = "<h4 style='font-size:12px; color:#666; margin-bottom:10px; text-align:center;'>Connect With Us</h4>";
+                if(snap.exists()) {
+                    if (drawerBox) drawerBox.style.display = 'block';
+                    snap.forEach(c => {
+                        let d = c.val();
+                        if (drawerBox) drawerBox.innerHTML += `<div class="drawer-item" style="color:#059669; justify-content: flex-start;" onclick="window.open('${d.url}', '_blank'); toggleDrawer();"><i class="fab ${d.icon}" style="font-size: 18px;"></i> ${d.title}</div>`;
+                    });
+                } else {
+                    if (drawerBox) drawerBox.style.display = 'none';
+                }
+            });
+
+            db.ref('admin/tasks').on('value', snap => {
+                let box = document.getElementById('dynamicTasksContainer');
+                let title = document.getElementById('extraTasksTitle');
+                if (box) box.innerHTML = "";
+                if(snap.exists()) {
+                    if (title) title.style.display = 'block';
+                    snap.forEach(c => {
+                        let d = c.val();
+                        if(box) {
+                            box.innerHTML += `
+                            <div class="auth-card" style="margin-bottom:0; display:flex; justify-content:space-between; align-items:center; padding:15px; border-left: 4px solid #f59e0b;">
+                                <div>
+                                    <strong style="font-size:13px; color:#333;"><i class="fas fa-play-circle" style="color:#e63946;"></i> ${d.title}</strong><br>
+                                    <span style="font-size:11px; color:#10b981; font-weight:bold;">Reward: ${d.coins} Coins</span>
+                                </div>
+                                <button class="btn-3d" style="width:auto; padding:8px 15px; margin-top:0; color:#4f46e5;" onclick="startDynamicTask('${c.key}', '${d.url || ''}', ${d.coins}, ${d.time})"><i class="fas fa-gift"></i> Claim</button>
+                            </div>`;
+                        }
+                    });
+                } else {
+                    if (title) title.style.display = 'none';
+                }
+            });
+        }
+
+        function toggleDrawer() { document.getElementById('sideDrawer').classList.toggle('open'); document.getElementById('drawerOverlay').classList.toggle('active'); }
+
+        function switchTab(tabId, navEl = null, skipHistory = false) {
+            if (currentTab === tabId) return; 
+            currentTab = tabId;
+
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            let tabToActivate = document.getElementById(tabId);
+            if(tabToActivate) tabToActivate.classList.add('active');
+            
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            if(navEl) { navEl.classList.add('active'); }
+            else {
+                let mappedNav = document.getElementById('nav-' + tabId.replace('tab-', ''));
+                if(mappedNav) mappedNav.classList.add('active');
+            }
+            
+            let topNav = document.getElementById('topNavbar');
+            let adCont = document.getElementById('adsterra-ads-container');
+
+            if (tabId === 'tab-home') { 
+                topNav.style.display = 'none'; 
+                if(adCont) adCont.style.display = 'flex';
+                setTimeout(checkAndShowPopup, 500); 
+            } 
+            else if (tabId === 'authScreen') { 
+                topNav.style.display = 'none'; 
+                if(adCont) adCont.style.display = 'none';
+            }
+            else { 
+                topNav.style.display = 'flex'; 
+                if(adCont) adCont.style.display = 'flex';
+            }
+
+            let titles = { 'tab-home': 'Dashboard', 'tab-wallet': 'My Wallet', 'tab-history': 'History', 'tab-support': 'Support', 'tab-withdraw': 'Withdraw Funds', 'tab-recharge': 'Recharge', 'tab-leaderboard': 'Top Earners', 'tab-refer': 'Invite Friends' };
+            if(titles[tabId] && document.getElementById('headerTitle')) document.getElementById('headerTitle').innerText = titles[tabId];
+            
+            if (!skipHistory && tabId !== 'authScreen') {
+                try { history.pushState({ tab: tabId }, "", "#" + tabId); } catch(e) {}
+            }
+
+            if(tabId === 'tab-checkin') updateCheckinTimer();
+            if(tabId === 'tab-withdraw') loadWithdrawSlots();
+            if(tabId === 'tab-recharge') loadRechargeSlots();
+            if(tabId === 'tab-history') loadHistory(); 
+            if(tabId === 'tab-support') loadMyTickets();
+            if(tabId === 'tab-leaderboard') loadLeaderboard();
+            if(tabId === 'tab-scratch') { if(!scratchCanvasActive) resetScratchCard(); }
+        }
+
+        window.addEventListener('popstate', (event) => {
+            if (event.state && event.state.tab) { switchTab(event.state.tab, null, true); }
+            else if (currentUser) { switchTab('tab-home', null, true); }
+        });
+
+        auth.onAuthStateChanged(user => {
+            let splash = document.getElementById('splashScreen');
+            if(splash && splash.style.display !== 'none') {
+                splash.style.opacity = '0';
+                setTimeout(() => splash.style.display = 'none', 500);
+            }
+            
+            if(user) {
+                currentUser = user;
+                db.ref('users/' + user.uid).update({ email: user.email }).catch(e=>{});
+
+                db.ref('notifications/' + user.uid).on('value', snap => {
+                    userNotifications = []; let unreadCount = 0;
+                    if(snap.exists()) {
+                        snap.forEach(child => {
+                            let n = child.val(); n.key = child.key;
+                            userNotifications.push(n);
+                            if(!n.read) unreadCount++;
+                        });
+                    }
+                    updateNotifDot(unreadCount);
+                });
+
+                db.ref('users/' + user.uid).on('value', snap => {
+                    let data = snap.val();
+                    if(data && data.banned) { alert("Your Account has been blocked by Admin."); auth.signOut(); return; }
+                    
+                    currentCoins = data ? (data.coins || 0) : 0;
+                    
+                    document.getElementById('bottomNav').style.display = 'flex';
+                    
+                    let emailStr = user.email;
+                    document.getElementById('drawerUserEmail').innerText = emailStr;
+                    document.getElementById('homeUserName').innerText = emailStr.split('@')[0];
+                    document.getElementById('referLink').value = sysReferBaseUrl + "?uid=" + user.uid;
+                    
+                    document.getElementById('homeWalletBalance').innerText = currentCoins;
+                    document.getElementById('walletCoinsDisplayFull').innerText = currentCoins;
+                    
+                    calculateUserLevel();
+                    
+                    if(currentTab === 'tab-withdraw') loadWithdrawSlots();
+                    if(currentTab === 'tab-recharge') loadRechargeSlots();
+                });
+                
+                loadAdsterraSocialBar();
+
+                let hashTab = window.location.hash.replace('#', '');
+                if(hashTab && document.getElementById(hashTab)) {
+                    switchTab(hashTab, null, true);
+                    try { history.replaceState({ tab: hashTab }, "", "#" + hashTab); } catch(e) {}
+                    setTimeout(checkAndShowPopup, 1000); 
+                } else {
+                    switchTab('tab-home', document.getElementById('nav-home'), true);
+                    try { history.replaceState({ tab: 'tab-home' }, "", "#tab-home"); } catch(e) {}
+                    setTimeout(checkAndShowPopup, 1000); 
+                }
+            } else { 
+                currentUser = null;
+                startupPopupShown = false; 
+                document.getElementById('topNavbar').style.display = 'none'; 
+                document.getElementById('bottomNav').style.display = 'none'; 
+                switchTab('authScreen', null, true); 
+            }
+        });
+
+        function toggleAuthMode(mode) {
+            document.getElementById('loginFormCard').style.display = mode === 'signup' ? 'none' : 'block';
+            document.getElementById('signupFormCard').style.display = mode === 'signup' ? 'block' : 'none';
+            document.getElementById('authTitle').innerText = mode === 'signup' ? "Create Account" : "Secure Login";
+        }
+
+        function loginUser() {
+            const e = document.getElementById('loginEmail').value, p = document.getElementById('loginPassword').value, btn = document.getElementById('loginBtn');
+            if(!e || !p) return alert("Please fill both Email and Password!");
+            btn.disabled = true; btn.innerHTML = "Logging in...";
+            auth.signInWithEmailAndPassword(e, p).catch(err => alert("Login Error: " + err.message)).finally(() => { btn.disabled = false; btn.innerHTML = `<i class="fas fa-sign-in-alt"></i> Login`; });
+        }
+
+        function signupUser() {
+            const e = document.getElementById('signupEmail').value, p = document.getElementById('signupPassword').value, btn = document.getElementById('signupBtn');
+            if(!e || !p) return alert("Please fill both Email and Password!");
+            if(p.length < 6) return alert("Password must be at least 6 characters.");
+            btn.disabled = true; btn.innerHTML = "Creating Account...";
+            auth.createUserWithEmailAndPassword(e, p).then(res => {
+                db.ref('users/' + res.user.uid).set({ email: e, coins: 0, adClicks: 0, lastCheckin: 0, banned: false, totalRewardsEarned: 0 });
+                alert("Account created successfully!");
+            }).catch(err => alert("Signup Error: " + err.message)).finally(() => { btn.disabled = false; btn.innerHTML = `<i class="fas fa-user-plus"></i> Create Account`; });
+        }
+
+        function resetPassword() {
+            const email = document.getElementById('loginEmail').value;
+            if(!email) return alert("Please enter your Gmail ID in the box first to reset your password.");
+            auth.sendPasswordResetEmail(email).then(() => alert("Password reset link has been sent to your email!")).catch(err => alert("Error: " + err.message));
+        }
+
+        function logout() { auth.signOut(); }
+
+        function secureAddCoins(amount) { 
+            if(!navigator.onLine) {
+                alert("Transaction Blocked: Internet is disconnected!");
+                return;
+            }
+            db.ref(`users/${currentUser.uid}/coins`).transaction(c => (c || 0) + amount); 
+            db.ref(`users/${currentUser.uid}/totalRewardsEarned`).transaction(t => (t || 0) + amount);
+            playCoinSound(); 
+            showCoinToast(amount);
+        }
+
+        function startDynamicTask(key, url, coins, time) {
+            if(!navigator.onLine) {
+                showNetworkToast("No connection! Data off hai.", "offline");
+                return;
+            }
+            secureAddCoins(coins);
+            db.ref(`users/${currentUser.uid}/adClicks`).transaction(c => (c || 0) + 1);
+            db.ref(`stats/totalAdClicks`).transaction(c => (c || 0) + 1);
+            
+            if(url && url.trim() !== "") {
+                window.open(url, '_blank');
+            }
+        }
+
+        function initiateSecureAd(actionType, duration, buttonElement) {
+            if(!navigator.onLine) {
+                showNetworkToast("No connection! Data off hai.", "offline");
+                return;
+            }
+            if(actionType === 'withdraw' && selectedWAmount === 0) return alert("Select amount slot first!");
+            if(actionType === 'recharge' && (!selectedRPlan || !document.getElementById('recMobile').value)) return alert("Fill all recharge details!");
+
+            if (buttonElement.disabled) return;
+
+            buttonElement.disabled = true;
+            let originalText = buttonElement.innerHTML;
+            let timeLeft = 10;
+            
+            buttonElement.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Wait ${timeLeft}s`;
+
+            processActionReward(actionType);
+            
+            let cooldownInterval = setInterval(() => {
+                timeLeft--;
+                if (timeLeft > 0) {
+                    buttonElement.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Wait ${timeLeft}s`;
+                } else {
+                    clearInterval(cooldownInterval);
+                    buttonElement.innerHTML = originalText;
+                    buttonElement.disabled = false;
+                }
+            }, 1000);
+        }
+
+        function processActionReward(actionType) {
+            if(!navigator.onLine) {
+                showNetworkToast("Internet disconnected! Blocked.", "offline");
+                return;
+            }
+            if(actionType === 'checkin') {
+                db.ref('.info/serverTimeOffset').once('value').then(offset => {
+                    let serverTime = Date.now() + (offset.val() || 0);
+                    db.ref('users/' + currentUser.uid + '/lastCheckin').set(serverTime); 
+                    secureAddCoins(sysDailyBonus); 
+                    updateCheckinTimer();
+                });
+            } else if(actionType === 'spin') {
+                let wheel = document.getElementById('wheelBox');
+                let deg = Math.floor(Math.random()*360)+1440; wheel.style.transform = `rotate(${deg}deg)`;
+                
+                let wonAmount = Math.floor(Math.random() * (sysSpinMax - sysSpinMin + 1)) + sysSpinMin;
+                
+                setTimeout(() => { 
+                    wheel.style.transform = `rotate(${deg%360}deg)`; 
+                    secureAddCoins(wonAmount); 
+                }, 3000);
+            } else if(actionType === 'scratch') {
+                initScratchCard();
+            } else if(actionType === 'watch') {
+                secureAddCoins(sysWatchReward);
+            } else if(actionType === 'withdraw') {
+                executeWithdrawal();
+            } else if(actionType === 'recharge') {
+                executeRecharge();
+            }
+        }
+
+        let checkinInt;
+        function updateCheckinTimer() {
+            if(!currentUser) return;
+            clearInterval(checkinInt);
+            let btn = document.getElementById('claimCheckinBtn'), disp = document.getElementById('checkinTimer');
+            btn.disabled = true; disp.innerText = "Checking server...";
+
+            db.ref('users/' + currentUser.uid + '/lastCheckin').once('value').then(snap => {
+                db.ref('.info/serverTimeOffset').once('value').then(offset => {
+                    let last = snap.val() || 0;
+                    let serverTime = Date.now() + (offset.val() || 0);
+                    let hrs = 24*60*60*1000;
+                    
+                    if(serverTime - last >= hrs) { disp.innerText = "Ready!"; disp.style.color = "#10b981"; btn.disabled = false; } 
+                    else {
+                        disp.style.color = "#e63946";
+                        checkinInt = setInterval(() => {
+                            let currServerTime = Date.now() + (offset.val() || 0);
+                            let r = hrs - (currServerTime - last);
+                            if(r<=0) { clearInterval(checkinInt); updateCheckinTimer(); }
+                            else { disp.innerText = `${Math.floor((r/(1000*60*60))%24)}h ${Math.floor((r/(1000*60))%60)}m ${Math.floor((r/1000)%60)}s`; }
+                        }, 1000);
+                    }
+                });
+            });
+        }
+
+        let scratchCanvas = document.getElementById('scratchCanvas');
+        let scratchCtx = scratchCanvas ? scratchCanvas.getContext('2d') : null;
+        let isScratching = false, scratchRewardGiven = false, pendingScratchCoins = 0, scratchCanvasActive = false;
+
+        function resetScratchCard() {
+            scratchCanvasActive = false;
+            let rewardEl = document.getElementById('scratchReward');
+            rewardEl.style.display = 'block'; rewardEl.innerText = "🔒 Unlock First";
+            scratchCtx.clearRect(0, 0, scratchCanvas.width, scratchCanvas.height);
+        }
+
+        function initScratchCard() {
+            scratchCanvasActive = true;
+            scratchCanvas.width = 250; scratchCanvas.height = 150;
+            scratchCtx.globalCompositeOperation = 'source-over';
+            scratchCtx.fillStyle = '#b8bcc2'; scratchCtx.fillRect(0, 0, scratchCanvas.width, scratchCanvas.height);
+            scratchCtx.font = 'bold 20px Poppins'; scratchCtx.fillStyle = '#555'; scratchCtx.textAlign = 'center';
+            scratchCtx.fillText('Scratch Here', scratchCanvas.width/2, scratchCanvas.height/2 + 7);
+
+            scratchRewardGiven = false;
+            
+            pendingScratchCoins = Math.floor(Math.random() * (sysScratchMax - sysScratchMin + 1)) + sysScratchMin;
+            
+            document.getElementById('scratchReward').style.display = 'none';
+            
+            scratchCanvas.onmousedown = (e)=>{isScratching=true; scratch(e);};
+            scratchCanvas.onmousemove = scratch;
+            scratchCanvas.onmouseup = ()=>{isScratching=false; checkScratchProgress();};
+            scratchCanvas.ontouchstart = (e)=>{isScratching=true; scratch(e);};
+            scratchCanvas.ontouchmove = scratch;
+            scratchCanvas.ontouchend = ()=>{isScratching=false; checkScratchProgress();};
+        }
+
+        function getScratchPos(e) {
+            let rect = scratchCanvas.getBoundingClientRect();
+            let clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            let clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return { x: clientX - rect.left, y: clientY - rect.top };
+        }
+
+        function scratch(e) {
+            if(!isScratching || scratchRewardGiven || !scratchCanvasActive) return;
+            if(e.cancelable) e.preventDefault();
+            let pos = getScratchPos(e);
+            scratchCtx.globalCompositeOperation = 'destination-out';
+            scratchCtx.beginPath(); scratchCtx.arc(pos.x, pos.y, 20, 0, Math.PI * 2); scratchCtx.fill();
+        }
+
+        function checkScratchProgress() {
+            if(scratchRewardGiven || !scratchCanvasActive) return;
+            let imgData = scratchCtx.getImageData(0, 0, scratchCanvas.width, scratchCanvas.height).data;
+            let transparentPixels = 0;
+            for(let i = 3; i < imgData.length; i += 4) { if(imgData[i] === 0) transparentPixels++; }
+            
+            if(transparentPixels > (scratchCanvas.width * scratchCanvas.height * 0.4)) { 
+                scratchCtx.clearRect(0, 0, scratchCanvas.width, scratchCanvas.height);
+                scratchRewardGiven = true; scratchCanvasActive = false;
+                let rewardEl = document.getElementById('scratchReward');
+                rewardEl.innerText = `🎁 ${pendingScratchCoins} Coins!`; rewardEl.style.display = 'block';
+                secureAddCoins(pendingScratchCoins);
+            }
+        }
+
+        function loadLeaderboard() {
+            let box = document.getElementById('leaderboardList');
+            box.innerHTML = "<p style='text-align:center; font-size:12px;'>Loading...</p>";
+            db.ref('users').orderByChild('coins').limitToLast(10).on('value', snap => {
+                let topUsers = [];
+                snap.forEach(child => { topUsers.push({ uid: child.key, ...child.val() }); });
+                topUsers.reverse();
+                box.innerHTML = "";
+                topUsers.forEach((user, index) => {
+                    let medal = index === 0 ? "🥇" : (index === 1 ? "🥈" : (index === 2 ? "🥉" : "🏅"));
+                    box.innerHTML += `<div class="card-3d" style="display:flex; justify-content:space-between; margin-bottom:10px; padding:15px; align-items:center;">
+                        <span style="font-weight:bold; font-size:14px;">${medal} Rank #${index + 1}</span>
+                        <span style="font-weight:bold; color:#10b981;">${user.coins || 0} Coins</span>
+                    </div>`;
+                });
+            });
+        }
+
+        function copyReferLink() {
+            let copyText = document.getElementById("referLink");
+            copyText.select(); document.execCommand("copy");
+            alert(`Referral Link Copied! You'll get ${sysReferBonus} Coins per signup.`);
+        }
+
+        let currentWType = 'UPI', selectedWAmount = 0, selectedWCoins = 0;
+        function selectPayMethod(type, el) {
+            currentWType = type;
+            document.querySelectorAll('.pay-method-card').forEach(c => c.classList.remove('active')); el.classList.add('active');
+            
+            document.getElementById('formUPI').style.display = type==='UPI' ? 'block' : 'none';
+            document.getElementById('formBank').style.display = type==='Bank' ? 'block' : 'none';
+            document.getElementById('formGame').style.display = type==='Game' ? 'block' : 'none';
+            
+            loadWithdrawSlots();
+        }
+
+        function loadWithdrawSlots() {
+            let box = document.getElementById('withdrawSlotsContainer');
+            let node = '';
+            if(currentWType === 'UPI') { node = 'admin/withdrawSlots'; }
+            else if(currentWType === 'Bank') { node = 'admin/bankWithdrawSlots'; }
+            else if(currentWType === 'Game') { node = 'admin/gameWithdrawSlots'; }
+
+            if(activeWSlotRef) activeWSlotRef.off(); 
+            activeWSlotRef = db.ref(node);
+
+            activeWSlotRef.on('value', snap => {
+                let slots = snap.val() || []; box.innerHTML = "";
+                if(slots.length === 0) {
+                    box.innerHTML = `<p style="font-size:11px; color:#888; grid-column:span 3;">No slots added by admin.</p>`;
+                } else {
+                    slots.forEach(s => {
+                        if(!s) return;
+                        let locked = currentCoins < s.coins;
+                        box.innerHTML += `<div class="slot-card ${locked?'disabled':''}" id="wSlot_${s.amount}" onclick="pickWSlot(${s.amount},${s.coins},${locked})"><h4>₹${s.amount}</h4><span class="coin-req">${s.coins} Coins</span></div>`;
+                    });
+                    if(selectedWAmount !== 0) {
+                        let sl = document.getElementById('wSlot_'+selectedWAmount);
+                        if(sl && !sl.classList.contains('disabled')) sl.classList.add('active');
+                    }
+                }
+            });
+        }
+
+        function pickWSlot(amt, coins, locked) {
+            if(locked) return alert("Not enough coins in wallet!");
+            if(amt < sysMinWithdraw || amt > sysMaxWithdraw) {
+                return alert(`Invalid Amount! Min limit is ₹${sysMinWithdraw} and Max is ₹${sysMaxWithdraw}.`);
+            }
+
+            selectedWAmount = amt; selectedWCoins = coins;
+            document.querySelectorAll('#withdrawSlotsContainer .slot-card').forEach(c => c.classList.remove('active'));
+            document.getElementById('wSlot_'+amt).classList.add('active');
+        }
+
+        function executeWithdrawal() {
+            let det = "";
+            if(currentWType === 'UPI') {
+                let upi = document.getElementById('upiId').value;
+                if(!upi) return alert("Enter UPI ID");
+                det = "UPI: " + upi;
+            } else if (currentWType === 'Bank') {
+                let bn = document.getElementById('bankName').value, ba = document.getElementById('bankAcc').value, bi = document.getElementById('bankIfsc').value;
+                if(!bn || !ba || !bi) return alert("Enter all bank details!");
+                det = `Name: ${bn}, A/c: ${ba}, IFSC: ${bi}`;
+            } else if (currentWType === 'Game') {
+                let gUid = document.getElementById('gameUID').value;
+                if(!gUid) return alert("Enter Game UID");
+                det = "Game UID: " + gUid;
+            }
+
+            db.ref('users/'+currentUser.uid+'/coins').transaction(c => c - selectedWCoins);
+            db.ref('transactions/'+currentUser.uid).push({ type: 'Withdraw', method: currentWType, details: det, amount: selectedWAmount, coins: selectedWCoins, status: "Pending", time: firebase.database.ServerValue.TIMESTAMP });
+            
+            alert(`Requested ₹${selectedWAmount}! Status is Pending.`); 
+            selectedWAmount = 0; switchTab('tab-history');
+        }
+
+        let selectedRPlan = null, selectedRCoins = 0;
+        function loadRechargeSlots() {
+            let op = document.getElementById('recOperator').value;
+            let box = document.getElementById('rechargeSlotsContainer');
+            
+            if(activeRSlotRef) activeRSlotRef.off();
+            activeRSlotRef = db.ref('admin/rechargePlans/' + op);
+
+            activeRSlotRef.on('value', snap => {
+                let plans = snap.val(); box.innerHTML = "";
+                if(plans) {
+                    for(let price in plans) {
+                        let pData = plans[price];
+                        let coins = parseInt(price) * 100; let locked = currentCoins < coins;
+                        box.innerHTML += `<div class="slot-card ${locked?'disabled':''}" id="rSlot_${price}" onclick="pickRSlot(${price},${coins},${locked})"><h4>₹${price}</h4><p>${pData.details}</p><span class="coin-req">${coins} Coins</span></div>`;
+                    }
+                } else { box.innerHTML = "<p style='font-size:11px; color:#888; grid-column:span 2;'>No plans found.</p>"; }
+            });
+        }
+
+        function pickRSlot(price, coins, locked) {
+            if(locked) return alert("Need more coins!");
+            selectedRPlan = price; selectedRCoins = coins;
+            document.querySelectorAll('#rechargeSlotsContainer .slot-card').forEach(c => c.classList.remove('active'));
+            document.getElementById('rSlot_'+price).classList.add('active');
+        }
+
+        function executeRecharge() {
+            let mob = document.getElementById('recMobile').value;
+            let op = document.getElementById('recOperator').value;
+            let cir = document.getElementById('recCircle').value;
+
+            db.ref('users/'+currentUser.uid+'/coins').transaction(c => c - selectedRCoins);
+            db.ref('transactions/'+currentUser.uid).push({ type: 'Recharge', method: op, details: `Mob: ${mob}, Circle: ${cir}`, amount: selectedRPlan, coins: selectedRCoins, status: "Pending", time: firebase.database.ServerValue.TIMESTAMP });
+            
+            alert(`Recharge Requested for ₹${selectedRPlan}!`); 
+            selectedRPlan = null; switchTab('tab-history');
+        }
+
+        function loadHistory() {
+            let box = document.getElementById('historyList'); 
+            box.innerHTML = "<p style='text-align:center; font-size:12px;'><i class='fas fa-spinner fa-spin'></i> Loading...</p>";
+            
+            db.ref('transactions/' + currentUser.uid).on('value', snap => {
+                box.innerHTML = ""; let data = snap.val();
+                if(data) {
+                    Object.values(data).sort((a,b) => b.time - a.time).forEach(t => {
+                        let date = new Date(t.time).toLocaleString();
+                        let colorClass = t.status === 'Success' ? 'badge-success' : (t.status === 'Pending' ? 'badge-pending' : 'badge-reject');
+                        let reasonUI = t.rejectionReason && t.status === 'Rejected' ? `<span class="rejection-reason"><i class="fas fa-exclamation-triangle"></i> ${t.rejectionReason}</span>` : '';
+
+                        box.innerHTML += `<div class="history-item">
+                            <div>
+                                <p style="font-size:14px; font-weight:bold; color: #4318ff;">${t.type} (₹${t.amount})</p>
+                                <p style="font-size:10px; color:#6b7280; font-weight: 500;">${date}</p>
+                                <p style="font-size:12px; color: #444; margin-top:3px;"><i class="fas fa-info-circle"></i> ${t.details || t.method}</p>
+                                ${reasonUI}
+                            </div>
+                            <div style="text-align:right;"><span class="badge ${colorClass}">${t.status}</span></div>
+                        </div>`;
+                    });
+                } else { box.innerHTML = "<p style='text-align:center; font-size:12px; color:#888;'>No records found.</p>"; }
+            });
+        }
+
+        function submitSupport() {
+            let sub = document.getElementById('supSubject').value;
+            let msg = document.getElementById('supMsg').value;
+            if(!sub || !msg) return alert("Fill all fields");
+
+            if(!navigator.onLine) {
+                showNetworkToast("No connection! Data off hai.", "offline");
+                return;
+            }
+
+            db.ref('supportTickets').push({ uid: currentUser.uid, email: currentUser.email, subject: sub, message: msg, time: firebase.database.ServerValue.TIMESTAMP, status: 'Pending' });
+            showNetworkToast("Ticket Submitted successfully!", "online");
+            document.getElementById('supSubject').value = ""; 
+            document.getElementById('supMsg').value = "";
+            loadMyTickets(); 
+        }
+
+        function loadMyTickets() {
+            let box = document.getElementById('myTicketsList'); 
+            db.ref('supportTickets').on('value', snap => {
+                box.innerHTML = ""; let myTickets = [];
+                snap.forEach(child => { let t = child.val(); if(t.uid === currentUser.uid) myTickets.push(t); });
+                if(myTickets.length > 0) {
+                    myTickets.sort((a,b) => b.time - a.time).forEach(t => {
+                        let date = new Date(t.time).toLocaleString();
+                        let stat = t.status || 'Pending';
+                        let badgeClass = stat === 'Resolved' ? 'badge-success' : (stat === 'Rejected' ? 'badge-reject' : 'badge-pending');
+                        let adminReply = t.adminReply ? `<p style="font-size:11px; color:#065f46; background:#d1fae5; padding:8px; border-radius:8px; margin-top:8px;"><b>Admin Reply:</b> ${t.adminReply}</p>` : "";
+                        box.innerHTML += `<div class="card-3d" style="text-align: left; padding: 15px; margin-bottom:10px;">
+                            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+                                <span style="font-size:14px; font-weight:bold; color:#4318ff;">${t.subject}</span>
+                                <span class="badge ${badgeClass}">${stat}</span>
+                            </div>
+                            <p style="font-size:10px; color:#888; margin-bottom:8px;">${date}</p>
+                            <p style="font-size:12px; color:#555;">${t.message}</p>
+                            ${adminReply}
+                        </div>`;
+                    });
+                } else { box.innerHTML = "<p style='text-align:center; font-size:12px; color:#888;'>No past tickets.</p>"; }
+            });
+        }
+    </script>
+</body>
+</html>
